@@ -8,7 +8,7 @@
 include { COUNT_LINES } from './bioawk_process.nf'
 include { GET_READ_STATS } from './pyfastx_process.nf'
 include { BLAST } from './BLAST.nf'
-
+include { assign_reads } from './assing_reads.nf'
 
 workflow {
     // Create one channel entry per fastq file found in the input directory
@@ -18,7 +18,7 @@ workflow {
     COUNT_LINES(fastq_ch)
     GET_READ_STATS(fastq_ch)
     BLAST(fastq_ch, params.db, params.db_name, params.run_name)
-
+    assign_reads(BLAST.out.blast_result, params.run_name)
 
     // Merge every sample's output into one combined report file
     COUNT_LINES.out

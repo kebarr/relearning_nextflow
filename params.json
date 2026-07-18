@@ -1,0 +1,5 @@
+{
+    "input_fastq": "sample_40_shigella_flex_reads.fastq",
+    "binput_dir": "data",
+    "outdir": "tresults_dir"
+}

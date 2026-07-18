@@ -6,6 +6,7 @@
  */
 process GET_READ_STATS {
 
+    debug true
     publishDir "${params.out_stats}", mode: 'copy'
 
     input:

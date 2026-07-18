@@ -11,8 +11,10 @@ workflow {
                 depth: row.sequencing_depth.toInteger(),
                 quality: row.quality_score.toDouble()
             ]
+	   
+
 	    def priority = sample_meta.quality > 40 ? 'high' : 'normal'
-            return sample_meta + [priority: priority]
+		return tuple( sample_meta + [priority: priority], file(row.file_path) )
 	}
         .view()
 

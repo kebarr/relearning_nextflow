@@ -2,6 +2,18 @@ include { GENERATE_REPORT } from './modules/generate_report.nf'
 include { FASTP } from './modules/fastp.nf'
 include { TRIMGALORE } from './modules/trimgalore.nf'
 
+def validateInputs() {
+    // Check input parameter is provided
+    if (!params.input) {
+        error("Input CSV file path not provided. Please specify --input <file.csv>")
+    }
+
+    // Check CSV file exists
+    if (!file(params.input).exists()) {
+        error("Input CSV file not found: ${params.input}")
+    }
+}
+
 def separateMetadata(row) {
     def sample_meta = [
         id: row.sample_id.toLowerCase(),
@@ -10,6 +22,8 @@ def separateMetadata(row) {
         depth: row.sequencing_depth.toInteger(),
         quality: row.quality_score.toDouble()
     ]
+    def run_id = row.run_id?.toUpperCase() ?: 'UNSPECIFIED' // specify default, if none is specified result is null
+    sample_meta.run = run_id	
     def fastq_path = file(row.file_path)
 
     def m = (fastq_path.name =~ /^(.+)_S(\d+)_L(\d{3})_(R[12])_(\d{3})\.fastq(?:\.gz)?$/)
@@ -21,25 +35,67 @@ def separateMetadata(row) {
     ] : [:]
 
     def priority = sample_meta.quality > 40 ? 'high' : 'normal'
-    return tuple(sample_meta + file_meta + [priority: priority], fastq_path)
+        // Validate data makes sense
+    if (sample_meta.depth < 30000000) {
+        log.warn "Low sequencing depth for ${sample_meta.id}: ${sample_meta.depth}"
+    }
+
+	return tuple(sample_meta + file_meta + [priority: priority], fastq_path)
 }
 
 
 workflow {
     main:
-    ch_samples = channel.fromPath("./data/samples.csv")
+        validateInputs()
+    	ch_samples = channel.fromPath(params.input)
+	//ch_samples = channel.fromPath("./data/samples.csv")
         .splitCsv(header: true)
         .map{ row -> separateMetadata(row) }
+	.view()
+    	
+	// Filter out invalid or low-quality samples
+    ch_valid_samples = ch_samples
+        .filter { meta, reads ->
+            meta.id && meta.organism && meta.depth >= 25000000
+        }
 
-    trim_branches = ch_samples
+    trim_branches = ch_valid_samples
         .branch { meta, reads ->
             fastp: meta.organism == 'human' && meta.depth >= 30000000
             trimgalore: true
         }
 
+	// Another powerful pattern for controlling workflow execution is the .filter() operator, which uses a closure to determine which items should continue down the pipeline. Inside the filter closure, you'll write boolean expressions that decide which items pass through.
+
+	//Nextflow (like many dynamic languages) has a concept of "truthiness" that determines what values evaluate to true or false in boolean contexts:
+
+	//    Truthy: Non-null values, non-empty strings, non-zero numbers, non-empty collections
+	//    Falsy: null, empty strings "", zero 0, empty collections [] or [:], false
+
+
     ch_fastp = FASTP(trim_branches.fastp)
     ch_trimgalore = TRIMGALORE(trim_branches.trimgalore)
     GENERATE_REPORT(ch_samples)	
+
+    workflow.onComplete = {
+        println ""
+        println "Pipeline execution summary:"
+        println "=========================="
+        println "Completed at: ${workflow.complete}"
+        println "Duration    : ${workflow.duration}"
+        println "Success     : ${workflow.success}"
+        println "workDir     : ${workflow.workDir}"
+        println "exit status : ${workflow.exitStatus}"
+        println ""
+
+        if (workflow.success) {
+            println "✅ Pipeline completed successfully!"
+        } else {
+            println "❌ Pipeline failed!"
+            println "Error: ${workflow.errorMessage}"
+        }
+
+    }
 
 
     publish:

@@ -7,7 +7,6 @@
 process GET_READ_STATS {
 
     debug true
-    publishDir "${params.out_stats}", mode: 'copy'
 
     input:
     path input_fastq
@@ -18,6 +17,7 @@ process GET_READ_STATS {
     script:
     """
 	echo "Collecting basic read stats"
-	pyfastx stat $input_fastq > "pyfastx_stats.csv"
+	echo "## $input_fastq" > "pyfastx_stats.csv"
+	pyfastx stat $input_fastq >> "pyfastx_stats.csv"
     """
 }

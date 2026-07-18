@@ -6,7 +6,6 @@
 process COUNT_LINES {
 
     debug true
-    publishDir "${params.out_count}", mode: 'copy'
 
     input:
     path input_fastq

@@ -17,7 +17,7 @@ workflow {
     // Run processes once per fastq file
     COUNT_LINES(fastq_ch)
     GET_READ_STATS(fastq_ch)
-    BLAST(fastq_ch)
+    BLAST(fastq_ch, params.db, params.db_name, params.run_name)
 
 
     // Merge every sample's output into one combined report file
@@ -27,8 +27,11 @@ workflow {
     GET_READ_STATS.out
         .collectFile(name: 'pyfastx_stats.csv', storeDir: params.out_stats)
 
-    BLAST.out
-        .collectFile(name: params.run_name, storeDir: params.out_alignment)
+    BLAST.out.top_hits
+        .collectFile(name: "top_hits_${params.run_name}", storeDir: params.out_alignment)
+
+    BLAST.out.blast_result
+        .collectFile(name: "blast_result_${params.run_name}", storeDir: params.out_alignment)
 }
 
 

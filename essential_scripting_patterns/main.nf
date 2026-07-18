@@ -1,3 +1,5 @@
+include { FASTP } from './modules/fastp.nf'
+
 workflow {
     main:
     ch_samples = channel.fromPath("./data/samples.csv")
@@ -26,8 +28,9 @@ workflow {
             return tuple(sample_meta + file_meta + [priority: priority], fastq_path)
  
 	}
-        .view()
+        
 
+    ch_fastp = FASTP(ch_samples)
     publish:
     reports = channel.empty()
 }

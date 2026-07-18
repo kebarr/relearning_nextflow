@@ -2,6 +2,7 @@ process assign_reads {
     input:
     path blast_result
     val run_name
+    val lca_script
 
     output:
     path "frequency_table_LCA_$run_name.txt", emit: read_assignments

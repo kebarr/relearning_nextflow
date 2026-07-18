@@ -77,40 +77,18 @@ workflow {
     ch_trimgalore = TRIMGALORE(trim_branches.trimgalore)
     GENERATE_REPORT(ch_samples)	
 
-    workflow.onComplete = {
-        def summary = """
-        Pipeline Execution Summary
-        ===========================
-        Completed: ${workflow.complete}
-        Duration : ${workflow.duration}
-        Success  : ${workflow.success}
-        Command  : ${workflow.commandLine}
-        """
-
-        println summary
-
-        // Write to a log file
-        def log_file = file("${workflow.launchDir}/pipeline_summary.txt")
-        log_file.text = summary
-	}
-
     workflow.onError = {
-        println "="* 50
-        println "Pipeline execution failed!"
-        println "Error message: ${workflow.errorMessage}"
-        println "="* 50
+        println "Workflow failed: ${workflow.errorMessage}"
+    }
 
-        // Write detailed error log
-        def error_file = file("${workflow.launchDir}/error.log")
-        error_file.text = """
-        Workflow Error Report
-        =====================
-        Time: ${new Date()}
-        Error: ${workflow.errorMessage}
-        Error report: ${workflow.errorReport ?: 'No detailed report available'}
+    workflow.onComplete = {
+        def duration_mins = workflow.duration.toMinutes()
+        def status = workflow.success ? "SUCCESS ✅" : "FAILED ❌"
+
+        println """
+        Pipeline finished: ${status}
+        Duration: ${duration_mins} minutes
         """
-
-        println "Error details written to: ${error_file}"
     }
 
 

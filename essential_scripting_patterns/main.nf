@@ -78,23 +78,39 @@ workflow {
     GENERATE_REPORT(ch_samples)	
 
     workflow.onComplete = {
-        println ""
-        println "Pipeline execution summary:"
-        println "=========================="
-        println "Completed at: ${workflow.complete}"
-        println "Duration    : ${workflow.duration}"
-        println "Success     : ${workflow.success}"
-        println "workDir     : ${workflow.workDir}"
-        println "exit status : ${workflow.exitStatus}"
-        println ""
+        def summary = """
+        Pipeline Execution Summary
+        ===========================
+        Completed: ${workflow.complete}
+        Duration : ${workflow.duration}
+        Success  : ${workflow.success}
+        Command  : ${workflow.commandLine}
+        """
 
-        if (workflow.success) {
-            println "✅ Pipeline completed successfully!"
-        } else {
-            println "❌ Pipeline failed!"
-            println "Error: ${workflow.errorMessage}"
-        }
+        println summary
 
+        // Write to a log file
+        def log_file = file("${workflow.launchDir}/pipeline_summary.txt")
+        log_file.text = summary
+	}
+
+    workflow.onError = {
+        println "="* 50
+        println "Pipeline execution failed!"
+        println "Error message: ${workflow.errorMessage}"
+        println "="* 50
+
+        // Write detailed error log
+        def error_file = file("${workflow.launchDir}/error.log")
+        error_file.text = """
+        Workflow Error Report
+        =====================
+        Time: ${new Date()}
+        Error: ${workflow.errorMessage}
+        Error report: ${workflow.errorReport ?: 'No detailed report available'}
+        """
+
+        println "Error details written to: ${error_file}"
     }
 
 
